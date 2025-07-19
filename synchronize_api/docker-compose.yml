@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  # PostgreSQL数据库
+  postgres:
+    image: postgres:15-alpine
+    container_name: synchronize_api_postgres
+    environment:
+      POSTGRES_DB: synchronize_api
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - synchronize_api_network
+
+  # Redis缓存
+  redis:
+    image: redis:7-alpine
+    container_name: synchronize_api_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - synchronize_api_network
+
+  # 同步API应用
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: synchronize_api_app
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/synchronize_api
+      - REDIS_URL=redis://redis:6379/0
+      - DEBUG=true
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - /app/__pycache__
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - synchronize_api_network
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Celery工作进程
+  celery:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: synchronize_api_celery
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/synchronize_api
+      - REDIS_URL=redis://redis:6379/0
+      - DEBUG=true
+    volumes:
+      - .:/app
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - synchronize_api_network
+    command: celery -A src.tasks.sync_scheduler worker --loglevel=info
+
+  # Celery调度器
+  celery-beat:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: synchronize_api_celery_beat
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/synchronize_api
+      - REDIS_URL=redis://redis:6379/0
+      - DEBUG=true
+    volumes:
+      - .:/app
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - synchronize_api_network
+    command: celery -A src.tasks.sync_scheduler beat --loglevel=info
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  synchronize_api_network:
+    driver: bridge

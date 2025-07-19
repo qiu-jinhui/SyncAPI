@@ -1,0 +1,149 @@
+openapi: 3.0.0
+info:
+  title: Synchonize API - CUD Event
+  version: 1.0.0
+paths:
+  /api/v1/model-garden/events:
+    post:
+      summary: Receive CUD event from Model Garden
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [event_type, entity_type, entity_id, timestamp, payload]
+              properties:
+                event_type:
+                  type: string
+                  enum: [CREATED, UPDATED, DELETED]
+                entity_type:
+                  type: string
+                entity_id:
+                  type: string
+                timestamp:
+                  type: string
+                  format: date-time
+                version:
+                  type: string
+                payload:
+                  oneOf:
+                    - $ref: '#/components/schemas/ProjectPayload'
+                    - $ref: '#/components/schemas/UseCasePayload'
+                    - $ref: '#/components/schemas/UseCaseBudgetPayload'
+                    - $ref: '#/components/schemas/ModelPayload'
+                    - $ref: '#/components/schemas/ModelDeploymentPayload'
+                    - $ref: '#/components/schemas/ModelPricingPayload'
+                    - $ref: '#/components/schemas/SubscriptionPayload'
+                    - $ref: '#/components/schemas/ModelLimitPayload'
+                  discriminator:
+                    propertyName: entity_type
+                    mapping:
+                      project: '#/components/schemas/ProjectPayload'
+                      use_case: '#/components/schemas/UseCasePayload'
+                      use_case_budget: '#/components/schemas/UseCaseBudgetPayload'
+                      model: '#/components/schemas/ModelPayload'
+                      model_deployment: '#/components/schemas/ModelDeploymentPayload'
+                      llm_model_pricing: '#/components/schemas/ModelPricingPayload'
+                      subscription: '#/components/schemas/SubscriptionPayload'
+                      llm_model_limit: '#/components/schemas/ModelLimitPayload'
+      responses:
+        '200':
+          description: Event processed
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ProjectPayload:
+      type: object
+      properties:
+        id: { type: string }
+        project_name: { type: string }
+        project_code: { type: string }
+        created_time: { type: string }
+        updated_time: { type: string }
+
+    UseCasePayload:
+      type: object
+      properties:
+        id: { type: string }
+        project_id: { type: string }
+        use_case_name: { type: string }
+        ad_group: { type: string }
+        is_active: { type: boolean }
+        created_time: { type: string }
+        updated_time: { type: string }
+
+    UseCaseBudgetPayload:
+      type: object
+      properties:
+        id: { type: string }
+        use_case_id: { type: string }
+        budget_cents: { type: integer }
+        currency: { type: string }
+        created_time: { type: string }
+        updated_time: { type: string }
+
+    ModelPayload:
+      type: object
+      properties:
+        id: { type: string }
+        model_name: { type: string }
+        model_type: { type: string }
+        provider: { type: string }
+        model_input: { type: string }
+        model_output: { type: string }
+        max_content_length: { type: integer }
+        created_time: { type: string }
+        updated_time: { type: string }
+
+    ModelDeploymentPayload:
+      type: object
+      properties:
+        id: { type: string }
+        model_id: { type: string }
+        deployment_name: { type: string }
+        endpoint: { type: string }
+        auth_secret_manager_path: { type: string }
+        request_per_min : { type: integer }
+        token_per_min : { type: integer }
+        region: { type: string }
+        is_default: { type: boolean }
+        created_time: { type: string }
+        updated_time: { type: string }
+
+    ModelPricingPayload:
+      type: object
+      properties:
+        id: { type: string }
+        model_id: { type: string }
+        input_token_price_cpm: { type: integer }
+        output_token_price_cpm: { type: integer }
+        currency: { type: string }
+        created_time: { type: string }
+        updated_time: { type: string }
+
+    SubscriptionPayload:
+      type: object
+      properties:
+        id: { type: string }
+        project_id: { type: string }
+        use_case_id: { type: string }
+        model_id: { type: string }
+        alias: { type: string }
+        created_time: { type: string }
+        updated_time: { type: string }
+
+    ModelLimitPayload:
+      type: object
+      properties:
+        id: { type: string }
+        subscription_id: { type: string }
+        limit_type: { type: string }
+        scope: { type: string }
+        limit_value: { type: integer }
+        created_time: { type: string }
+        updated_time: { type: string }

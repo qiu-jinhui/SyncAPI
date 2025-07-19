@@ -1,0 +1,44 @@
+这是一个同步API的文档，用于同步Model Garden的模型信息到API。
+
+这个api包括两部分：
+1. 调用 model garden 提供的/model-garden/sync/all 接口，同步所有数据到GatewayDB，这个api是定时调用的。 
+    1. /model-garden/sync/all 接口定义 sync-api.yml。 
+    2. 调用过程需要按照sync-api-design.md中定义的流程图（Note over SynchronizeAPI: Trigger sync all API部分）进行实现。
+    3. 创建一个定时任务，定时调用/model-garden/sync/all 接口，同步所有数据到GatewayDB。
+
+2. 提供 /api/v1/model-garden/events 接口，用于同步model garden的CUD事件到GatewayDB，这个api是实时调用的。当CUD event 出现在model garden 时，model garden 会调用这个api，同步数据到GatewayDB。
+    1. API需要按照sync-api-event.yml的定义进行实现，包括请求参数、响应参数、错误码、错误信息等。
+    2. API的实现过程需要按照sync-api-design.md中定义的流程图（Note over ModelGarden: Trigger CUD event API）进行实现。
+
+
+请用python 实现这个api
+1. 使用poetry 进行包管理
+2. 使用fastapi 框架
+3. 使用uvicorn 启动
+4. 使用pytest 进行测试，测试覆盖率需要达到95%
+4. 使用sqlalchemy 进行数据库操作
+5. 使用redis 进行缓存，使用redis stream 进行事件同步
+6. 使用docker 进行部署
+
+代码结构应该遵循下面格式： 
+synchronize_api/
+├── src/
+│   ├── __init__.py
+│   ├── main.py
+│   └── xx_package/
+│       ├── __init__.py
+│       └── xx_module.py
+├── tests/
+│   ├── conftest.py
+│   ├── test_database.py
+│   ├── test_main.py
+│   ├── run_tests.py
+│   ├── test_models/
+│   │   ├── __init__.py
+│   │   └── test_xx_module.py
+│   └── test_repositories/
+│       ├── __init__.py
+│       └── test_xx_module.py
+├── .env
+└── .gitignore
+

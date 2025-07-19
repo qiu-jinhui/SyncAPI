@@ -1,0 +1,147 @@
+openapi: 3.0.0
+info:
+  title: Synchonize API
+  version: 1.0.0
+paths:
+  /api/v1/model-garden/sync/all:
+    post:
+      summary: Full sync of all model garden configuration
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                updated_since:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: All entities synchronized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projects:
+                    type: array
+                    items: { $ref: '#/components/schemas/ProjectPayload' }
+                  use_cases:
+                    type: array
+                    items: { $ref: '#/components/schemas/UseCasePayload' }
+                  budgets:
+                    type: array
+                    items: { $ref: '#/components/schemas/UseCaseBudgetPayload' }
+                  models:
+                    type: array
+                    items: { $ref: '#/components/schemas/ModelPayload' }
+                  model_deployments: 
+                    type: array
+                    items: { $ref: '#/components/schemas/ModelDeploymentPayload'}
+                  pricing:
+                    type: array
+                    items: { $ref: '#/components/schemas/ModelPricingPayload' }
+                  use_case_llm_models:
+                    type: array
+                    items: { $ref: '#/components/schemas/SubscriptionPayload' }
+                  limits:
+                    type: array
+                    items: { $ref: '#/components/schemas/ModelLimitPayload' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ProjectPayload:
+      type: object
+      properties:
+        id: { type: string }
+        project_name: { type: string }
+        project_code: { type: string }
+        created_time: { type: string }
+        updated_time: { type: string }
+
+    UseCasePayload:
+      type: object
+      properties:
+        id: { type: string }
+        project_id: { type: string }
+        use_case_name: { type: string }
+        ad_group: { type: string }
+        is_active: { type: boolean }
+        created_time: { type: string }
+        updated_time: { type: string }
+
+    UseCaseBudgetPayload:
+      type: object
+      properties:
+        id: { type: string }
+        use_case_id: { type: string }
+        budget_cents: { type: integer }
+        currency: { type: string }
+        created_time: { type: string }
+        updated_time: { type: string }
+
+    ModelPayload:
+      type: object
+      properties:
+        id: { type: string }
+        model_name: { type: string }
+        model_type: { type: string }
+        provider: { type: string }
+        model_input: { type: string }
+        model_output: { type: string }
+        max_content_length: { type: integer }
+        created_time: { type: string }
+        updated_time: { type: string }
+
+    ModelDeploymentPayload:
+      type: object
+      properties:
+        id: { type: string }
+        model_id: { type: string }
+        deployment_name: { type: string }
+        endpoint: { type: string }
+        auth_secret_manager_path: { type: string }
+        region: { type: string }
+        request_per_min : { type: integer }
+        token_per_min : { type: integer }
+        is_default: { type: boolean }
+        created_time: { type: string }
+        updated_time: { type: string }
+
+    ModelPricingPayload:
+      type: object
+      properties:
+        id: { type: string }
+        model_id: { type: string }
+        input_token_price_cpm: { type: integer }
+        output_token_price_cpm: { type: integer }
+        currency: { type: string }
+        created_time: { type: string }
+        updated_time: { type: string }
+
+    SubscriptionPayload:
+      type: object
+      properties:
+        id: { type: string }
+        project_id: { type: string }
+        use_case_id: { type: string }
+        model_id: { type: string }
+        alias: { type: string }
+        created_time: { type: string }
+        updated_time: { type: string }
+
+    ModelLimitPayload:
+      type: object
+      properties:
+        id: { type: string }
+        subscription_id: { type: string }
+        limit_type: { type: string }
+        scope: { type: string }
+        limit_value: { type: integer }
+        created_time: { type: string }
+        updated_time: { type: string }
