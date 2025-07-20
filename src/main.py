@@ -10,6 +10,7 @@ import time
 import structlog
 
 from src.api.v1.event_router import router as event_router
+from src.api.v1.sync_router import router as sync_router
 from src.config.settings import get_settings
 from src.utils.logger import setup_logging
 
@@ -86,6 +87,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # 注册路由
 app.include_router(event_router, tags=["events"])
+app.include_router(sync_router, tags=["sync"])
 
 @app.get("/", summary="根路径")
 async def root():
