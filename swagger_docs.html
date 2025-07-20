@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synchronize API - Swagger Documentation</title>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui.css" />
+    <style>
+        html {
+            box-sizing: border-box;
+            overflow: -moz-scrollbars-vertical;
+            overflow-y: scroll;
+        }
+        *, *:before, *:after {
+            box-sizing: inherit;
+        }
+        body {
+            margin:0;
+            background: #fafafa;
+        }
+        #swagger-ui {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        .swagger-ui .topbar {
+            background-color: #1976d2;
+        }
+        .header-info {
+            background: #1976d2;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 0;
+        }
+        .header-info h1 {
+            margin: 0;
+            font-size: 2em;
+        }
+        .header-info p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="header-info">
+        <h1>🔄 Synchronize API</h1>
+        <p>同步API系统，用于同步Model Garden的模型信息到GatewayDB</p>
+        <p><strong>版本:</strong> 1.0.0 | <strong>协议:</strong> OpenAPI 3.1.0</p>
+    </div>
+    
+    <div id="swagger-ui"></div>
+
+    <script src="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui-standalone-preset.js"></script>
+    <script>
+        // OpenAPI 规范数据
+        const openApiSpec = {"openapi":"3.1.0","info":{"title":"Synchronize API","description":"同步API系统，用于接收Model Garden的CUD事件","version":"1.0.0"},"paths":{"/api/v1/model-garden/events":{"post":{"tags":["events"],"summary":"接收Model Garden的CUD事件","description":"处理来自Model Garden的创建、更新、删除事件","operationId":"receive_event_api_v1_model_garden_events_post","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/EventRequest"}}},"required":true},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/EventResponse"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/v1/model-garden/health":{"get":{"tags":["events"],"summary":"健康检查","description":"检查API服务状态","operationId":"health_check_api_v1_model_garden_health_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"additionalProperties":true,"type":"object","title":"Response Health Check Api V1 Model Garden Health Get"}}}}}}},"/api/v1/model-garden/sync/all":{"post":{"tags":["sync"],"summary":"全量同步Model Garden配置","description":"从Model Garden同步所有配置数据到本地数据库","operationId":"sync_all_api_v1_model_garden_sync_all_post","requestBody":{"content":{"application/json":{"schema":{"anyOf":[{"$ref":"#/components/schemas/SyncRequest"},{"type":"null"}],"title":"Request"}}}},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SyncResponse"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/v1/model-garden/sync/status":{"get":{"tags":["sync"],"summary":"获取同步状态","description":"获取最近的同步任务状态信息","operationId":"get_sync_status_api_v1_model_garden_sync_status_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"additionalProperties":true,"type":"object","title":"Response Get Sync Status Api V1 Model Garden Sync Status Status Get"}}}}}}},"/":{"get":{"summary":"根路径","description":"根路径，返回API信息","operationId":"root__get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}},"/health":{"get":{"summary":"健康检查","description":"健康检查端点","operationId":"health_health_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}}},"components":{"schemas":{"EventRequest":{"properties":{"event_id":{"type":"string","title":"Event Id","description":"事件ID"},"event_type":{"type":"string","title":"Event Type","description":"事件类型"},"entity_type":{"type":"string","title":"Entity Type","description":"实体类型"},"entity_id":{"type":"string","title":"Entity Id","description":"实体ID"},"timestamp":{"type":"string","title":"Timestamp","description":"事件时间戳"},"version":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Version","description":"事件版本"},"payload":{"additionalProperties":true,"type":"object","title":"Payload","description":"事件负载数据"}},"type":"object","required":["event_id","event_type","entity_type","entity_id","timestamp","payload"],"title":"EventRequest","description":"事件请求模式","example":{"entity_id":"proj-001","entity_type":"project","event_type":"CREATED","payload":{"created_time":"2025-07-15T14:00:00Z","id":"proj-001","project_code":"CREDIT_AI","project_name":"Credit AI","updated_time":"2025-07-15T14:00:00Z"},"timestamp":"2025-07-15T14:20:00Z","version":"1.0"}},"EventResponse":{"properties":{"status":{"type":"string","title":"Status","description":"处理状态"},"message":{"type":"string","title":"Message","description":"响应消息"}},"type":"object","required":["status","message"],"title":"EventResponse","description":"事件响应模式","example":{"message":"Event processed successfully","status":"ok"}},"HTTPValidationError":{"properties":{"detail":{"items":{"$ref":"#/components/schemas/ValidationError"},"type":"array","title":"Detail"}},"type":"object","title":"HTTPValidationError"},"ModelDeploymentPayload":{"properties":{"id":{"type":"string","title":"Id","description":"部署ID"},"model_id":{"type":"string","title":"Model Id","description":"模型ID"},"deployment_name":{"type":"string","title":"Deployment Name","description":"部署名称"},"endpoint":{"type":"string","title":"Endpoint","description":"端点URL"},"auth_secret_manager_path":{"type":"string","title":"Auth Secret Manager Path","description":"认证密钥管理器路径"},"region":{"type":"string","title":"Region","description":"区域"},"request_per_min":{"type":"integer","title":"Request Per Min","description":"每分钟请求数"},"token_per_min":{"type":"integer","title":"Token Per Min","description":"每分钟令牌数"},"is_default":{"type":"boolean","title":"Is Default","description":"是否默认"},"created_time":{"type":"string","format":"date-time","title":"Created Time","description":"创建时间"},"updated_time":{"type":"string","format":"date-time","title":"Updated Time","description":"更新时间"}},"type":"object","required":["id","model_id","deployment_name","endpoint","auth_secret_manager_path","region","request_per_min","token_per_min","is_default","created_time","updated_time"],"title":"ModelDeploymentPayload","description":"模型部署负载数据"},"ModelLimitPayload":{"properties":{"id":{"type":"string","title":"Id","description":"限制ID"},"subscription_id":{"type":"string","title":"Subscription Id","description":"订阅ID"},"limit_type":{"type":"string","title":"Limit Type","description":"限制类型"},"scope":{"type":"string","title":"Scope","description":"作用域"},"limit_value":{"type":"integer","title":"Limit Value","description":"限制值"},"created_time":{"type":"string","format":"date-time","title":"Created Time","description":"创建时间"},"updated_time":{"type":"string","format":"date-time","title":"Updated Time","description":"更新时间"}},"type":"object","required":["id","subscription_id","limit_type","scope","limit_value","created_time","updated_time"],"title":"ModelLimitPayload","description":"模型限制负载数据"},"ModelPayload":{"properties":{"id":{"type":"string","title":"Id","description":"模型ID"},"model_name":{"type":"string","title":"Model Name","description":"模型名称"},"model_type":{"type":"string","title":"Model Type","description":"模型类型"},"provider":{"type":"string","title":"Provider","description":"提供商"},"model_input":{"type":"string","title":"Model Input","description":"模型输入"},"model_output":{"type":"string","title":"Model Output","description":"模型输出"},"max_content_length":{"type":"integer","title":"Max Content Length","description":"最大内容长度"},"created_time":{"type":"string","format":"date-time","title":"Created Time","description":"创建时间"},"updated_time":{"type":"string","format":"date-time","title":"Updated Time","description":"更新时间"}},"type":"object","required":["id","model_name","model_type","provider","model_input","model_output","max_content_length","created_time","updated_time"],"title":"ModelPayload","description":"模型负载数据"},"ModelPricingPayload":{"properties":{"id":{"type":"string","title":"Id","description":"定价ID"},"model_id":{"type":"string","title":"Model Id","description":"模型ID"},"input_token_price_cpm":{"type":"integer","title":"Input Token Price Cpm","description":"输入令牌价格（每千个）"},"output_token_price_cpm":{"type":"integer","title":"Output Token Price Cpm","description":"输出令牌价格（每千个）"},"currency":{"type":"string","title":"Currency","description":"货币类型"},"created_time":{"type":"string","format":"date-time","title":"Created Time","description":"创建时间"},"updated_time":{"type":"string","format":"date-time","title":"Updated Time","description":"更新时间"}},"type":"object","required":["id","model_id","input_token_price_cpm","output_token_price_cpm","currency","created_time","updated_time"],"title":"ModelPricingPayload","description":"模型定价负载数据"},"ProjectPayload":{"properties":{"id":{"type":"string","title":"Id","description":"项目ID"},"project_name":{"type":"string","title":"Project Name","description":"项目名称"},"project_code":{"type":"string","title":"Project Code","description":"项目代码"},"created_time":{"type":"string","format":"date-time","title":"Created Time","description":"创建时间"},"updated_time":{"type":"string","format":"date-time","title":"Updated Time","description":"更新时间"}},"type":"object","required":["id","project_name","project_code","created_time","updated_time"],"title":"ProjectPayload","description":"项目负载数据"},"SubscriptionPayload":{"properties":{"id":{"type":"string","title":"Id","description":"订阅ID"},"project_id":{"type":"string","title":"Project Id","description":"项目ID"},"use_case_id":{"type":"string","title":"Use Case Id","description":"用例ID"},"model_id":{"type":"string","title":"Model Id","description":"模型ID"},"alias":{"type":"string","title":"Alias","description":"别名"},"created_time":{"type":"string","format":"date-time","title":"Created Time","description":"创建时间"},"updated_time":{"type":"string","format":"date-time","title":"Updated Time","description":"更新时间"}},"type":"object","required":["id","project_id","use_case_id","model_id","alias","created_time","updated_time"],"title":"SubscriptionPayload","description":"订阅负载数据"},"SyncRequest":{"properties":{"updated_since":{"anyOf":[{"type":"string","format":"date-time"},{"type":"null"}],"title":"Updated Since","description":"增量同步起始时间，如果不提供则进行全量同步","example":"2025-07-01T00:00:00Z"}},"type":"object","title":"SyncRequest","description":"全量同步请求模式","example":{"updated_since":"2025-07-01T00:00:00Z"}},"SyncResponse":{"properties":{"projects":{"items":{"$ref":"#/components/schemas/ProjectPayload"},"type":"array","title":"Projects","description":"项目列表"},"use_cases":{"items":{"$ref":"#/components/schemas/UseCasePayload"},"type":"array","title":"Use Cases","description":"用例列表"},"budgets":{"items":{"$ref":"#/components/schemas/UseCaseBudgetPayload"},"type":"array","title":"Budgets","description":"预算列表"},"models":{"items":{"$ref":"#/components/schemas/ModelPayload"},"type":"array","title":"Models","description":"模型列表"},"model_deployments":{"items":{"$ref":"#/components/schemas/ModelDeploymentPayload"},"type":"array","title":"Model Deployments","description":"模型部署列表"},"pricing":{"items":{"$ref":"#/components/schemas/ModelPricingPayload"},"type":"array","title":"Pricing","description":"模型定价列表"},"use_case_llm_models":{"items":{"$ref":"#/components/schemas/SubscriptionPayload"},"type":"array","title":"Use Case Llm Models","description":"用例LLM模型订阅列表"},"limits":{"items":{"$ref":"#/components/schemas/ModelLimitPayload"},"type":"array","title":"Limits","description":"模型限制列表"}},"type":"object","title":"SyncResponse","description":"全量同步响应模式\n包含所有同步的实体数据","example":{"projects":[{"created_time":"2025-01-01T00:00:00Z","id":"proj-001","project_code":"CREDIT_AI","project_name":"Credit AI","updated_time":"2025-07-10T10:00:00Z"}],"use_cases":[{"ad_group":"ad_fraud","created_time":"2025-01-05T00:00:00Z","id":"uc-001","is_active":true,"project_id":"proj-001","updated_time":"2025-07-10T12:00:00Z","use_case_name":"fraud_detection"}]}},"UseCaseBudgetPayload":{"properties":{"id":{"type":"string","title":"Id","description":"预算ID"},"use_case_id":{"type":"string","title":"Use Case Id","description":"用例ID"},"budget_cents":{"type":"integer","title":"Budget Cents","description":"预算金额（分）"},"currency":{"type":"string","title":"Currency","description":"货币类型"},"created_time":{"type":"string","format":"date-time","title":"Created Time","description":"创建时间"},"updated_time":{"type":"string","format":"date-time","title":"Updated Time","description":"更新时间"}},"type":"object","required":["id","use_case_id","budget_cents","currency","created_time","updated_time"],"title":"UseCaseBudgetPayload","description":"用例预算负载数据"},"UseCasePayload":{"properties":{"id":{"type":"string","title":"Id","description":"用例ID"},"project_id":{"type":"string","title":"Project Id","description":"项目ID"},"use_case_name":{"type":"string","title":"Use Case Name","description":"用例名称"},"ad_group":{"type":"string","title":"Ad Group","description":"AD组"},"is_active":{"type":"boolean","title":"Is Active","description":"是否激活"},"created_time":{"type":"string","format":"date-time","title":"Created Time","description":"创建时间"},"updated_time":{"type":"string","format":"date-time","title":"Updated Time","description":"更新时间"}},"type":"object","required":["id","project_id","use_case_name","ad_group","is_active","created_time","updated_time"],"title":"UseCasePayload","description":"用例负载数据"},"ValidationError":{"properties":{"loc":{"items":{"anyOf":[{"type":"string"},{"type":"integer"}]},"type":"array","title":"Location"},"msg":{"type":"string","title":"Message"},"type":{"type":"string","title":"Error Type"}},"type":"object","required":["loc","msg","type"],"title":"ValidationError"}}}}; 
+
+        // 初始化 Swagger UI
+        window.onload = function() {
+            const ui = SwaggerUIBundle({
+                spec: openApiSpec,
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                ],
+                layout: "StandaloneLayout",
+                docExpansion: "list",
+                defaultModelsExpandDepth: 2,
+                defaultModelExpandDepth: 2,
+                showRequestHeaders: true,
+                showResponseHeaders: true,
+                tryItOutEnabled: true,
+                filter: true,
+                supportedSubmitMethods: ['get', 'post', 'put', 'delete', 'patch'],
+                tagsSorter: "alpha",
+                operationsSorter: "alpha"
+            });
+        };
+    </script>
+</body>
+</html> 
