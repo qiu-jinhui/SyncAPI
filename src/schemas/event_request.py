@@ -4,38 +4,19 @@
 """
 
 from datetime import datetime
-from typing import Union, Optional
+from typing import Dict, Any, Optional
 from pydantic import BaseModel, Field
-
-from src.schemas.payloads import (
-    ProjectPayload,
-    UseCasePayload,
-    UseCaseBudgetPayload,
-    ModelPayload,
-    ModelDeploymentPayload,
-    ModelPricingPayload,
-    SubscriptionPayload,
-    ModelLimitPayload
-)
 
 class EventRequest(BaseModel):
     """事件请求模式"""
     
-    event_type: str = Field(..., description="事件类型", enum=["CREATED", "UPDATED", "DELETED"])
+    event_id: str = Field(..., description="事件ID")
+    event_type: str = Field(..., description="事件类型")
     entity_type: str = Field(..., description="实体类型")
     entity_id: str = Field(..., description="实体ID")
-    timestamp: datetime = Field(..., description="事件时间戳")
+    timestamp: str = Field(..., description="事件时间戳")
     version: Optional[str] = Field(None, description="事件版本")
-    payload: Union[
-        ProjectPayload,
-        UseCasePayload,
-        UseCaseBudgetPayload,
-        ModelPayload,
-        ModelDeploymentPayload,
-        ModelPricingPayload,
-        SubscriptionPayload,
-        ModelLimitPayload
-    ] = Field(..., description="事件负载数据")
+    payload: Dict[str, Any] = Field(..., description="事件负载数据")
     
     class Config:
         json_schema_extra = {
