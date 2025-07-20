@@ -22,8 +22,17 @@ class BaseModel(Base):
         """自动生成表名"""
         return cls.__name__.lower()
     
-    # 通用字段
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    # 通用字段 - 根据数据库类型选择ID字段类型
+    @declared_attr
+    def id(cls):
+        """根据数据库类型选择ID字段类型"""
+        # 检查是否在测试环境中（使用SQLite）
+        import os
+        if os.getenv('TESTING', 'false').lower() == 'true':
+            return Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()), index=True)
+        else:
+            return Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    
     created_time = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_time = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
     

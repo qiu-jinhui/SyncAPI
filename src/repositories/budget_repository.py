@@ -31,6 +31,15 @@ class BudgetRepository(BaseRepository[UseCaseBudget]):
         ).filter(
             self.model.use_case.has(project_id=project_id)
         ).all()
+    
+    def find_by_date_range(self, start_date: date, end_date: date) -> List[UseCaseBudget]:
+        """根据日期范围查找预算"""
+        return self.session.query(self.model).filter(
+            and_(
+                self.model.start_date >= start_date,
+                self.model.end_date <= end_date
+            )
+        ).all()
 
 class BudgetUsageRepository(BaseRepository[UseCaseBudgetUsage]):
     """预算使用仓储类"""
@@ -53,4 +62,20 @@ class BudgetUsageRepository(BaseRepository[UseCaseBudgetUsage]):
                 self.model.usage_period >= start_date,
                 self.model.usage_period <= end_date
             )
-        ).all() 
+        ).all()
+    
+    def get_usage_stats(self, use_case_id: Optional[str] = None) -> dict:
+        """获取预算使用统计信息"""
+        query = self.session.query(self.model)
+        if use_case_id:
+            query = query.filter(self.model.use_case_id == use_case_id)
+        
+        total_usage = query.count()
+        total_amount = query.with_entities(
+            func.sum(self.model.amount)
+        ).scalar() or 0
+        
+        return {
+            'total_usage_records': total_usage,
+            'total_amount_used': float(total_amount)
+        } 

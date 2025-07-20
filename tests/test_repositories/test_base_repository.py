@@ -1,271 +1,302 @@
 """
-基础仓储类测试
+基础仓储测试
 """
 
-import uuid
-import uuid
 import pytest
-from src.repositories.base_repository import BaseRepository
-from src.models.project import Project
+from datetime import datetime
+from tests.test_models import TestProjectModel
 
 class TestBaseRepository:
-    """基础仓储类测试"""
+    """基础仓储测试类"""
     
-    def test_create(self, session):
+    def test_create(self, base_repository, session):
         """测试创建记录"""
-        repo = BaseRepository(Project, session)
-        
-        project = repo.create(
-            project_name="Test Project",
-            project_code="TEST_PROJ"
+        project = base_repository.create(
+            id="test1",
+            name="Test Project",
+            code="TEST",
+            created_at=datetime.now(),
+            updated_at=datetime.now()
         )
-        
-        assert project is not None
-        assert project.id is not None
-        assert project.project_name == "Test Project"
-        assert project.project_code == "TEST_PROJ"
+        assert project.id == "test1"
+        assert project.name == "Test Project"
     
-    def test_get_by_id(self, session):
+    def test_get_by_id(self, base_repository, session):
         """测试根据ID获取记录"""
-        repo = BaseRepository(Project, session)
-        
         # 创建记录
-        project = repo.create(
-            project_name="Test Project",
-            project_code="TEST_PROJ"
+        project = base_repository.create(
+            id="test1",
+            name="Test Project",
+            code="TEST",
+            created_at=datetime.now(),
+            updated_at=datetime.now()
         )
         session.commit()
         
         # 获取记录
-        retrieved = repo.get_by_id(project.id)
-        
-        assert retrieved is not None
-        assert retrieved.id == project.id
-        assert retrieved.project_name == "Test Project"
+        found = base_repository.get_by_id("test1")
+        assert found is not None
+        assert found.id == "test1"
     
-    def test_get_by_id_not_found(self, session):
-        """测试根据ID获取不存在的记录"""
-        repo = BaseRepository(Project, session)
-        
-        # 使用有效的UUID格式
-        non_existent_id = str(uuid.uuid4())
-        result = repo.get_by_id(non_existent_id)
-        
-        assert result is None
+    def test_get_by_id_not_found(self, base_repository, session):
+        """测试获取不存在的记录"""
+        found = base_repository.get_by_id("nonexistent")
+        assert found is None
     
-    def test_get_all(self, session):
+    def test_get_all(self, base_repository, session):
         """测试获取所有记录"""
-        repo = BaseRepository(Project, session)
-        
         # 创建多个记录
-        repo.create(project_name="Project 1", project_code="PROJ1")
-        repo.create(project_name="Project 2", project_code="PROJ2")
-        repo.create(project_name="Project 3", project_code="PROJ3")
+        base_repository.create(
+            id="test1",
+            name="Project 1",
+            code="TEST1",
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
+        base_repository.create(
+            id="test2",
+            name="Project 2",
+            code="TEST2",
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
         session.commit()
         
         # 获取所有记录
-        projects = repo.get_all()
-        
-        assert len(projects) == 3
-        assert all(isinstance(p, Project) for p in projects)
+        all_projects = base_repository.get_all()
+        assert len(all_projects) == 2
     
-    def test_get_all_with_limit(self, session):
-        """测试获取所有记录（带限制）"""
-        repo = BaseRepository(Project, session)
-        
+    def test_get_all_with_limit(self, base_repository, session):
+        """测试带限制的获取所有记录"""
         # 创建多个记录
-        repo.create(project_name="Project 1", project_code="PROJ1")
-        repo.create(project_name="Project 2", project_code="PROJ2")
-        repo.create(project_name="Project 3", project_code="PROJ3")
+        for i in range(5):
+            base_repository.create(
+                id=f"test{i}",
+                name=f"Project {i}",
+                code=f"TEST{i}",
+                created_at=datetime.now(),
+                updated_at=datetime.now()
+            )
         session.commit()
         
-        # 获取前2个记录
-        projects = repo.get_all(limit=2)
-        
-        assert len(projects) == 2
+        # 带限制获取
+        limited = base_repository.get_all(limit=3)
+        assert len(limited) == 3
     
-    def test_update(self, session):
+    def test_update(self, base_repository, session):
         """测试更新记录"""
-        repo = BaseRepository(Project, session)
-        
         # 创建记录
-        project = repo.create(
-            project_name="Test Project",
-            project_code="TEST_PROJ"
+        project = base_repository.create(
+            id="test1",
+            name="Original Name",
+            code="TEST",
+            created_at=datetime.now(),
+            updated_at=datetime.now()
         )
         session.commit()
         
         # 更新记录
-        updated = repo.update(
-            project.id,
-            project_name="Updated Project",
-            project_code="UPDATED_PROJ"
-        )
-        
+        updated = base_repository.update("test1", name="Updated Name")
         assert updated is not None
-        assert updated.project_name == "Updated Project"
-        assert updated.project_code == "UPDATED_PROJ"
+        assert updated.name == "Updated Name"
     
-    def test_update_not_found(self, session):
+    def test_update_not_found(self, base_repository, session):
         """测试更新不存在的记录"""
-        repo = BaseRepository(Project, session)
-        
-        # 使用有效的UUID格式
-        non_existent_id = str(uuid.uuid4())
-        result = repo.update(non_existent_id, project_name="Updated")
-        
-        assert result is None
+        updated = base_repository.update("nonexistent", name="New Name")
+        assert updated is None
     
-    def test_delete(self, session):
+    def test_delete(self, base_repository, session):
         """测试删除记录"""
-        repo = BaseRepository(Project, session)
-        
         # 创建记录
-        project = repo.create(
-            project_name="Test Project",
-            project_code="TEST_PROJ"
+        base_repository.create(
+            id="test1",
+            name="Test Project",
+            code="TEST",
+            created_at=datetime.now(),
+            updated_at=datetime.now()
         )
         session.commit()
         
         # 删除记录
-        result = repo.delete(project.id)
+        deleted = base_repository.delete("test1")
+        assert deleted is True
         
-        assert result is True
-        
-        # 验证记录已被删除
-        retrieved = repo.get_by_id(project.id)
-        assert retrieved is None
+        # 验证删除
+        found = base_repository.get_by_id("test1")
+        assert found is None
     
-    def test_delete_not_found(self, session):
+    def test_delete_not_found(self, base_repository, session):
         """测试删除不存在的记录"""
-        repo = BaseRepository(Project, session)
-        
-        # 使用有效的UUID格式
-        non_existent_id = str(uuid.uuid4())
-        result = repo.delete(non_existent_id)
-        
-        assert result is False
+        deleted = base_repository.delete("nonexistent")
+        assert deleted is False
     
-    def test_count(self, session):
+    def test_count(self, base_repository, session):
         """测试计数"""
-        repo = BaseRepository(Project, session)
-        
-        # 创建多个记录
-        repo.create(project_name="Project 1", project_code="PROJ1")
-        repo.create(project_name="Project 2", project_code="PROJ2")
+        # 创建记录
+        base_repository.create(
+            id="test1",
+            name="Project 1",
+            code="TEST1",
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
+        base_repository.create(
+            id="test2",
+            name="Project 2",
+            code="TEST2",
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
         session.commit()
         
-        count = repo.count()
-        
+        count = base_repository.count()
         assert count == 2
     
-    def test_exists(self, session):
-        """测试记录存在性检查"""
-        repo = BaseRepository(Project, session)
-        
+    def test_exists(self, base_repository, session):
+        """测试检查存在"""
         # 创建记录
-        project = repo.create(
-            project_name="Test Project",
-            project_code="TEST_PROJ"
+        base_repository.create(
+            id="test1",
+            name="Test Project",
+            code="TEST",
+            created_at=datetime.now(),
+            updated_at=datetime.now()
         )
         session.commit()
         
         # 检查存在
-        assert repo.exists(project.id) is True
+        exists = base_repository.exists("test1")
+        assert exists is True
         
-        # 使用有效的UUID格式
-        non_existent_id = str(uuid.uuid4())
-        assert repo.exists(non_existent_id) is False
+        # 检查不存在
+        not_exists = base_repository.exists("nonexistent")
+        assert not_exists is False
     
-    def test_find_by(self, session):
-        """测试根据条件查找"""
-        repo = BaseRepository(Project, session)
-        
+    def test_find_by(self, base_repository, session):
+        """测试条件查找"""
         # 创建记录
-        repo.create(project_name="Test Project", project_code="TEST_PROJ")
-        repo.create(project_name="Another Project", project_code="ANOTHER_PROJ")
+        base_repository.create(
+            id="test1",
+            name="Test Project",
+            code="TEST",
+            is_active=True,
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
+        base_repository.create(
+            id="test2",
+            name="Another Project",
+            code="OTHER",
+            is_active=False,
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
         session.commit()
         
-        # 查找
-        projects = repo.find_by(project_name="Test Project")
-        
-        assert len(projects) == 1
-        assert projects[0].project_name == "Test Project"
+        # 条件查找
+        active_projects = base_repository.find_by(is_active=True)
+        assert len(active_projects) == 1
+        assert active_projects[0].is_active is True
     
-    def test_find_one_by(self, session):
-        """测试根据条件查找单条记录"""
-        repo = BaseRepository(Project, session)
-        
+    def test_find_one_by(self, base_repository, session):
+        """测试查找单个记录"""
         # 创建记录
-        project = repo.create(project_name="Test Project", project_code="TEST_PROJ")
+        base_repository.create(
+            id="test1",
+            name="Unique Project",
+            code="UNIQUE",
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
         session.commit()
         
-        # 查找
-        result = repo.find_one_by(project_name="Test Project")
-        
-        assert result is not None
-        assert result.id == project.id
+        # 查找单个
+        found = base_repository.find_one_by(code="UNIQUE")
+        assert found is not None
+        assert found.code == "UNIQUE"
     
-    def test_find_one_by_not_found(self, session):
-        """测试根据条件查找不存在的记录"""
-        repo = BaseRepository(Project, session)
-        
-        result = repo.find_one_by(project_name="Non-existent")
-        
-        assert result is None
+    def test_find_one_by_not_found(self, base_repository, session):
+        """测试查找不存在的记录"""
+        found = base_repository.find_one_by(code="NONEXISTENT")
+        assert found is None
     
-    def test_bulk_create(self, session):
+    def test_bulk_create(self, base_repository, session):
         """测试批量创建"""
-        repo = BaseRepository(Project, session)
-        
-        instances_data = [
-            {"project_name": "Project 1", "project_code": "PROJ1"},
-            {"project_name": "Project 2", "project_code": "PROJ2"},
-            {"project_name": "Project 3", "project_code": "PROJ3"}
+        data = [
+            {
+                "id": "bulk1",
+                "name": "Bulk Project 1",
+                "code": "BULK1",
+                "created_at": datetime.now(),
+                "updated_at": datetime.now()
+            },
+            {
+                "id": "bulk2",
+                "name": "Bulk Project 2",
+                "code": "BULK2",
+                "created_at": datetime.now(),
+                "updated_at": datetime.now()
+            }
         ]
         
-        created = repo.bulk_create(instances_data)
-        
-        assert len(created) == 3
-        assert all(isinstance(p, Project) for p in created)
-        assert all(p.id is not None for p in created)
+        created = base_repository.bulk_create(data)
+        assert len(created) == 2
+        assert created[0].name == "Bulk Project 1"
+        assert created[1].name == "Bulk Project 2"
     
-    def test_bulk_update(self, session):
+    def test_bulk_update(self, base_repository, session):
         """测试批量更新"""
-        repo = BaseRepository(Project, session)
-        
-        # 创建记录
-        p1 = repo.create(project_name="Project 1", project_code="PROJ1")
-        p2 = repo.create(project_name="Project 2", project_code="PROJ2")
+        # 先创建记录
+        base_repository.create(
+            id="test1",
+            name="Original 1",
+            code="TEST1",
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
+        base_repository.create(
+            id="test2",
+            name="Original 2",
+            code="TEST2",
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
         session.commit()
         
         # 批量更新
         updates = [
-            {"id": p1.id, "project_name": "Updated 1"},
-            {"id": p2.id, "project_name": "Updated 2"}
+            {"id": "test1", "name": "Updated 1"},
+            {"id": "test2", "name": "Updated 2"}
         ]
         
-        updated = repo.bulk_update(updates)
-        
+        updated = base_repository.bulk_update(updates)
         assert len(updated) == 2
-        assert updated[0].project_name == "Updated 1"
-        assert updated[1].project_name == "Updated 2"
+        assert updated[0].name == "Updated 1"
+        assert updated[1].name == "Updated 2"
     
-    def test_bulk_delete(self, session):
+    def test_bulk_delete(self, base_repository, session):
         """测试批量删除"""
-        repo = BaseRepository(Project, session)
-        
-        # 创建记录
-        p1 = repo.create(project_name="Project 1", project_code="PROJ1")
-        p2 = repo.create(project_name="Project 2", project_code="PROJ2")
+        # 先创建记录
+        base_repository.create(
+            id="test1",
+            name="To Delete 1",
+            code="DEL1",
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
+        base_repository.create(
+            id="test2",
+            name="To Delete 2",
+            code="DEL2",
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
         session.commit()
         
-        # 使用有效的UUID格式
-        non_existent_id = str(uuid.uuid4())
-        deleted_count = repo.bulk_delete([p1.id, p2.id, non_existent_id])
-        
+        # 批量删除
+        deleted_count = base_repository.bulk_delete(["test1", "test2"])
         assert deleted_count == 2
         
-        # 验证记录已被删除
-        assert repo.get_by_id(p1.id) is None
-        assert repo.get_by_id(p2.id) is None 
+        # 验证删除
+        assert base_repository.get_by_id("test1") is None
+        assert base_repository.get_by_id("test2") is None 

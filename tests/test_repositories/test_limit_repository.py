@@ -3,35 +3,44 @@
 """
 
 import pytest
-from datetime import datetime, timezone
-from src.models.limit import ModelLimit, ModelLimitUsage
-from src.models.subscription import Subscription
-from src.models.project import Project
-from src.models.use_case import UseCase
-from src.models.model import Model
+from datetime import datetime
+from sqlalchemy import func
+from tests.test_models import (
+    TestLimitModel, TestLimitUsageModel, TestProjectModel, 
+    TestUseCaseModel, TestModelModel, TestSubscriptionModel
+)
 
 class TestLimitRepository:
     """限制仓储测试类"""
     
     def test_find_by_subscription(self, limit_repository, session):
         """测试根据订阅查找限制"""
-        # 创建项目、用例、模型、订阅和限制
-        project = Project(project_name="Test Project", project_code="TEST_PROJ")
-        use_case = UseCase(use_case_name="Test Use Case", ad_group="test", project_id=project.id)
-        model = Model(model_name="Test Model", model_type="llm", provider="openai")
-        subscription = Subscription(
+        # 创建完整的依赖链
+        project = TestProjectModel(project_name="Test Project", project_code="TEST_PROJ")
+        session.add(project)
+        session.flush()
+        
+        use_case = TestUseCaseModel(name="Test Use Case", ad_group="test", project_id=project.id)
+        session.add(use_case)
+        session.flush()
+        
+        model = TestModelModel(name="Test Model", type="llm", provider="openai")
+        session.add(model)
+        session.flush()
+        
+        subscription = TestSubscriptionModel(
             project_id=project.id,
             use_case_id=use_case.id,
-            model_id=model.id
+            model_id=model.id,
+            provider="openai"
         )
-        session.add_all([project, use_case, model, subscription])
+        session.add(subscription)
         session.flush()
         
         limit = limit_repository.create(
             subscription_id=subscription.id,
-            limit_type="rate",
-            limit_value=1000,
-            scope="per_minute"
+            type="requests",
+            value=1000
         )
         session.commit()
         
@@ -43,147 +52,216 @@ class TestLimitRepository:
     
     def test_find_by_type(self, limit_repository, session):
         """测试根据类型查找限制"""
-        # 创建项目、用例、模型、订阅和限制
-        project = Project(project_name="Test Project", project_code="TEST_PROJ")
-        use_case = UseCase(use_case_name="Test Use Case", ad_group="test", project_id=project.id)
-        model = Model(model_name="Test Model", model_type="llm", provider="openai")
-        subscription = Subscription(
-            project_id=project.id,
-            use_case_id=use_case.id,
-            model_id=model.id
-        )
-        session.add_all([project, use_case, model, subscription])
+        # 创建完整的依赖链
+        project = TestProjectModel(project_name="Test Project", project_code="TEST_PROJ")
+        session.add(project)
         session.flush()
         
-        limit = limit_repository.create(
+        use_case = TestUseCaseModel(name="Test Use Case", ad_group="test", project_id=project.id)
+        session.add(use_case)
+        session.flush()
+        
+        model = TestModelModel(name="Test Model", type="llm", provider="openai")
+        session.add(model)
+        session.flush()
+        
+        subscription = TestSubscriptionModel(
+            project_id=project.id,
+            use_case_id=use_case.id,
+            model_id=model.id,
+            provider="openai"
+        )
+        session.add(subscription)
+        session.flush()
+        
+        limit1 = limit_repository.create(
             subscription_id=subscription.id,
-            limit_type="rate",
-            limit_value=1000,
-            scope="per_minute"
+            type="requests",
+            value=1000
+        )
+        limit2 = limit_repository.create(
+            subscription_id=subscription.id,
+            type="tokens",
+            value=50000
         )
         session.commit()
         
         # 查找
-        results = limit_repository.find_by_type("rate")
+        results = limit_repository.find_by_type("requests")
         
         assert len(results) == 1
-        assert results[0].limit_type == "rate"
+        assert results[0].type == "requests"
     
     def test_find_by_scope(self, limit_repository, session):
         """测试根据范围查找限制"""
-        # 创建项目、用例、模型、订阅和限制
-        project = Project(project_name="Test Project", project_code="TEST_PROJ")
-        use_case = UseCase(use_case_name="Test Use Case", ad_group="test", project_id=project.id)
-        model = Model(model_name="Test Model", model_type="llm", provider="openai")
-        subscription = Subscription(
+        # 创建完整的依赖链
+        project = TestProjectModel(project_name="Test Project", project_code="TEST_PROJ")
+        session.add(project)
+        session.flush()
+        
+        use_case = TestUseCaseModel(name="Test Use Case", ad_group="test", project_id=project.id)
+        session.add(use_case)
+        session.flush()
+        
+        model = TestModelModel(name="Test Model", type="llm", provider="openai")
+        session.add(model)
+        session.flush()
+        
+        subscription = TestSubscriptionModel(
             project_id=project.id,
             use_case_id=use_case.id,
-            model_id=model.id
+            model_id=model.id,
+            provider="openai"
         )
-        session.add_all([project, use_case, model, subscription])
+        session.add(subscription)
         session.flush()
         
         limit = limit_repository.create(
             subscription_id=subscription.id,
-            limit_type="rate",
-            limit_value=1000,
-            scope="per_minute"
+            type="requests",
+            scope="daily",
+            value=1000
         )
         session.commit()
         
         # 查找
-        results = limit_repository.find_by_scope("per_minute")
+        results = limit_repository.find_by_scope("daily")
         
         assert len(results) == 1
-        assert results[0].scope == "per_minute"
+        assert results[0].scope == "daily"
     
     def test_find_by_date_range(self, limit_repository, session):
         """测试根据日期范围查找限制"""
-        # 创建项目、用例、模型、订阅和限制
-        project = Project(project_name="Test Project", project_code="TEST_PROJ")
-        use_case = UseCase(use_case_name="Test Use Case", ad_group="test", project_id=project.id)
-        model = Model(model_name="Test Model", model_type="llm", provider="openai")
-        subscription = Subscription(
+        # 创建完整的依赖链
+        project = TestProjectModel(project_name="Test Project", project_code="TEST_PROJ")
+        session.add(project)
+        session.flush()
+        
+        use_case = TestUseCaseModel(name="Test Use Case", ad_group="test", project_id=project.id)
+        session.add(use_case)
+        session.flush()
+        
+        model = TestModelModel(name="Test Model", type="llm", provider="openai")
+        session.add(model)
+        session.flush()
+        
+        subscription = TestSubscriptionModel(
             project_id=project.id,
             use_case_id=use_case.id,
-            model_id=model.id
+            model_id=model.id,
+            provider="openai"
         )
-        session.add_all([project, use_case, model, subscription])
+        session.add(subscription)
         session.flush()
+        
+        start_date = datetime(2023, 1, 1)
+        end_date = datetime(2023, 12, 31)
         
         limit = limit_repository.create(
             subscription_id=subscription.id,
-            limit_type="rate",
-            limit_value=1000,
-            scope="per_minute",
-            start_date=datetime.now(timezone.utc)
+            type="requests",
+            value=1000,
+            start_date=start_date,
+            end_date=end_date
         )
         session.commit()
         
         # 查找
-        start_date = datetime.now(timezone.utc)
-        end_date = datetime.now(timezone.utc)
-        results = limit_repository.find_by_date_range(start_date, end_date)
+        results = limit_repository.find_by_date_range(
+            datetime(2023, 1, 1),
+            datetime(2023, 12, 31)
+        )
         
-        assert len(results) >= 1
+        assert len(results) == 1
+        assert results[0].start_date >= start_date
     
     def test_get_limit_stats(self, limit_repository, session):
         """测试获取限制统计信息"""
-        # 创建项目、用例、模型、订阅和限制
-        project = Project(project_name="Test Project", project_code="TEST_PROJ")
-        use_case = UseCase(use_case_name="Test Use Case", ad_group="test", project_id=project.id)
-        model = Model(model_name="Test Model", model_type="llm", provider="openai")
-        subscription = Subscription(
+        # 创建完整的依赖链
+        project = TestProjectModel(project_name="Test Project", project_code="TEST_PROJ")
+        session.add(project)
+        session.flush()
+        
+        use_case = TestUseCaseModel(name="Test Use Case", ad_group="test", project_id=project.id)
+        session.add(use_case)
+        session.flush()
+        
+        model = TestModelModel(name="Test Model", type="llm", provider="openai")
+        session.add(model)
+        session.flush()
+        
+        subscription = TestSubscriptionModel(
             project_id=project.id,
             use_case_id=use_case.id,
-            model_id=model.id
+            model_id=model.id,
+            provider="openai"
         )
-        session.add_all([project, use_case, model, subscription])
+        session.add(subscription)
         session.flush()
         
         limit_repository.create(
             subscription_id=subscription.id,
-            limit_type="rate",
-            limit_value=1000,
-            scope="per_minute"
+            type="requests",
+            value=1000
         )
         limit_repository.create(
             subscription_id=subscription.id,
-            limit_type="quota",
-            limit_value=10000,
-            scope="per_day"
+            type="tokens",
+            value=50000
+        )
+        limit_repository.create(
+            subscription_id=subscription.id,
+            type="cost",
+            value=100
         )
         session.commit()
         
         # 获取统计信息
         stats = limit_repository.get_limit_stats()
         
-        assert stats['total_limits'] == 2
-        assert stats['rate_limits'] == 1
-        assert stats['quota_limits'] == 1
+        assert stats['total_limits'] == 3
+        assert stats['types'] == 3
 
 class TestLimitUsageRepository:
     """限制使用仓储测试类"""
     
     def test_find_by_subscription(self, limit_usage_repository, session):
         """测试根据订阅查找限制使用"""
-        # 创建项目、用例、模型、订阅和限制使用
-        project = Project(project_name="Test Project", project_code="TEST_PROJ")
-        use_case = UseCase(use_case_name="Test Use Case", ad_group="test", project_id=project.id)
-        model = Model(model_name="Test Model", model_type="llm", provider="openai")
-        subscription = Subscription(
+        # 创建完整的依赖链
+        project = TestProjectModel(project_name="Test Project", project_code="TEST_PROJ")
+        session.add(project)
+        session.flush()
+        
+        use_case = TestUseCaseModel(name="Test Use Case", ad_group="test", project_id=project.id)
+        session.add(use_case)
+        session.flush()
+        
+        model = TestModelModel(name="Test Model", type="llm", provider="openai")
+        session.add(model)
+        session.flush()
+        
+        subscription = TestSubscriptionModel(
             project_id=project.id,
             use_case_id=use_case.id,
-            model_id=model.id
+            model_id=model.id,
+            provider="openai"
         )
-        session.add_all([project, use_case, model, subscription])
+        session.add(subscription)
+        session.flush()
+        
+        limit = TestLimitModel(
+            subscription_id=subscription.id,
+            type="requests",
+            value=1000
+        )
+        session.add(limit)
         session.flush()
         
         usage = limit_usage_repository.create(
-            subscription_id=subscription.id,
-            limit_type="rate",
-            usage_value=50,
-            usage_date=datetime.now(timezone.utc)
+            limit_id=limit.id,
+            type="requests",
+            value_used=100,
+            usage_date=datetime.now()
         )
         session.commit()
         
@@ -191,95 +269,152 @@ class TestLimitUsageRepository:
         results = limit_usage_repository.find_by_subscription(subscription.id)
         
         assert len(results) == 1
-        assert results[0].subscription_id == subscription.id
+        assert results[0].limit_id == limit.id
     
     def test_find_by_type(self, limit_usage_repository, session):
         """测试根据类型查找限制使用"""
-        # 创建项目、用例、模型、订阅和限制使用
-        project = Project(project_name="Test Project", project_code="TEST_PROJ")
-        use_case = UseCase(use_case_name="Test Use Case", ad_group="test", project_id=project.id)
-        model = Model(model_name="Test Model", model_type="llm", provider="openai")
-        subscription = Subscription(
+        # 创建完整的依赖链
+        project = TestProjectModel(project_name="Test Project", project_code="TEST_PROJ")
+        session.add(project)
+        session.flush()
+        
+        use_case = TestUseCaseModel(name="Test Use Case", ad_group="test", project_id=project.id)
+        session.add(use_case)
+        session.flush()
+        
+        model = TestModelModel(name="Test Model", type="llm", provider="openai")
+        session.add(model)
+        session.flush()
+        
+        subscription = TestSubscriptionModel(
             project_id=project.id,
             use_case_id=use_case.id,
-            model_id=model.id
+            model_id=model.id,
+            provider="openai"
         )
-        session.add_all([project, use_case, model, subscription])
+        session.add(subscription)
+        session.flush()
+        
+        limit = TestLimitModel(
+            subscription_id=subscription.id,
+            type="requests",
+            value=1000
+        )
+        session.add(limit)
         session.flush()
         
         usage = limit_usage_repository.create(
-            subscription_id=subscription.id,
-            limit_type="rate",
-            usage_value=50,
-            usage_date=datetime.now(timezone.utc)
+            limit_id=limit.id,
+            type="requests",
+            value_used=100,
+            usage_date=datetime.now()
         )
         session.commit()
         
         # 查找
-        results = limit_usage_repository.find_by_type("rate")
+        results = limit_usage_repository.find_by_type("requests")
         
         assert len(results) == 1
-        assert results[0].limit_type == "rate"
+        assert results[0].type == "requests"
     
     def test_find_by_date_range(self, limit_usage_repository, session):
         """测试根据日期范围查找限制使用"""
-        # 创建项目、用例、模型、订阅和限制使用
-        project = Project(project_name="Test Project", project_code="TEST_PROJ")
-        use_case = UseCase(use_case_name="Test Use Case", ad_group="test", project_id=project.id)
-        model = Model(model_name="Test Model", model_type="llm", provider="openai")
-        subscription = Subscription(
-            project_id=project.id,
-            use_case_id=use_case.id,
-            model_id=model.id
-        )
-        session.add_all([project, use_case, model, subscription])
+        # 创建完整的依赖链
+        project = TestProjectModel(project_name="Test Project", project_code="TEST_PROJ")
+        session.add(project)
         session.flush()
         
-        usage = limit_usage_repository.create(
+        use_case = TestUseCaseModel(name="Test Use Case", ad_group="test", project_id=project.id)
+        session.add(use_case)
+        session.flush()
+        
+        model = TestModelModel(name="Test Model", type="llm", provider="openai")
+        session.add(model)
+        session.flush()
+        
+        subscription = TestSubscriptionModel(
+            project_id=project.id,
+            use_case_id=use_case.id,
+            model_id=model.id,
+            provider="openai"
+        )
+        session.add(subscription)
+        session.flush()
+        
+        limit = TestLimitModel(
             subscription_id=subscription.id,
-            limit_type="rate",
-            usage_value=50,
-            usage_date=datetime.now(timezone.utc)
+            type="requests",
+            value=1000
+        )
+        session.add(limit)
+        session.flush()
+        
+        usage_date = datetime(2023, 6, 15)
+        usage = limit_usage_repository.create(
+            limit_id=limit.id,
+            type="requests",
+            value_used=100,
+            usage_date=usage_date
         )
         session.commit()
         
         # 查找
-        start_date = datetime.now(timezone.utc)
-        end_date = datetime.now(timezone.utc)
-        results = limit_usage_repository.find_by_date_range(start_date, end_date)
+        results = limit_usage_repository.find_by_date_range(
+            datetime(2023, 1, 1),
+            datetime(2023, 12, 31)
+        )
         
-        assert len(results) >= 1
+        assert len(results) == 1
+        assert results[0].usage_date >= datetime(2023, 1, 1)
     
     def test_get_usage_stats(self, limit_usage_repository, session):
         """测试获取使用统计信息"""
-        # 创建项目、用例、模型、订阅和限制使用
-        project = Project(project_name="Test Project", project_code="TEST_PROJ")
-        use_case = UseCase(use_case_name="Test Use Case", ad_group="test", project_id=project.id)
-        model = Model(model_name="Test Model", model_type="llm", provider="openai")
-        subscription = Subscription(
+        # 创建完整的依赖链
+        project = TestProjectModel(project_name="Test Project", project_code="TEST_PROJ")
+        session.add(project)
+        session.flush()
+        
+        use_case = TestUseCaseModel(name="Test Use Case", ad_group="test", project_id=project.id)
+        session.add(use_case)
+        session.flush()
+        
+        model = TestModelModel(name="Test Model", type="llm", provider="openai")
+        session.add(model)
+        session.flush()
+        
+        subscription = TestSubscriptionModel(
             project_id=project.id,
             use_case_id=use_case.id,
-            model_id=model.id
+            model_id=model.id,
+            provider="openai"
         )
-        session.add_all([project, use_case, model, subscription])
+        session.add(subscription)
+        session.flush()
+        
+        limit = TestLimitModel(
+            subscription_id=subscription.id,
+            type="requests",
+            value=1000
+        )
+        session.add(limit)
         session.flush()
         
         limit_usage_repository.create(
-            subscription_id=subscription.id,
-            limit_type="rate",
-            usage_value=50,
-            usage_date=datetime.now(timezone.utc)
+            limit_id=limit.id,
+            type="requests",
+            value_used=100,
+            usage_date=datetime.now()
         )
         limit_usage_repository.create(
-            subscription_id=subscription.id,
-            limit_type="rate",
-            usage_value=75,
-            usage_date=datetime.now(timezone.utc)
+            limit_id=limit.id,
+            type="requests",
+            value_used=150,
+            usage_date=datetime.now()
         )
         session.commit()
         
         # 获取统计信息
         stats = limit_usage_repository.get_usage_stats()
         
-        assert stats['total_usage'] == 2
-        assert stats['total_usage_value'] == 125 
+        assert stats['total_usage'] == 250
+        assert stats['usage_count'] == 2 

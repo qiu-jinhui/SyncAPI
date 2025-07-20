@@ -82,4 +82,32 @@ class DeploymentRepository(BaseRepository[ModelDeployment]):
         ).update({'is_default': True})
         
         self.session.flush()
-        return result > 0 
+        return result > 0
+    
+    def get_deployment_stats(self) -> dict:
+        """获取部署统计信息"""
+        total_deployments = self.count()
+        
+        # 按区域统计
+        region_stats = self.session.query(
+            self.model.region,
+            func.count(self.model.id).label('count')
+        ).group_by(self.model.region).all()
+        
+        # 按模型统计
+        model_stats = self.session.query(
+            self.model.model_id,
+            func.count(self.model.id).label('count')
+        ).group_by(self.model.model_id).all()
+        
+        # 默认部署统计
+        default_count = self.session.query(self.model).filter(
+            self.model.is_default == True
+        ).count()
+        
+        return {
+            'total_deployments': total_deployments,
+            'default_deployments': default_count,
+            'region_stats': {region: count for region, count in region_stats},
+            'model_stats': {model_id: count for model_id, count in model_stats}
+        } 
