@@ -1,18 +1,18 @@
 """
-同步API路由
-处理全量同步请求
+同步API路由 - 修复版本
+正确使用SyncService进行完整的同步流程
 """
 
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Body
 from datetime import datetime
-from sqlalchemy.orm import Session
 
 from src.schemas.sync_request import SyncRequest
 from src.schemas.sync_response import SyncResponse
 from src.services.sync_service import SyncService
 from src.api.dependencies import get_sync_service, get_db_session
 from src.utils.logger import get_logger
+from sqlalchemy.orm import Session
 
 logger = get_logger(__name__)
 
@@ -33,7 +33,7 @@ async def sync_all(
     """
     执行完整的同步操作
     
-    这个实现符合设计文档的要求：
+    这是正确的实现：
     1. 调用Model Garden API获取数据
     2. 将数据同步到本地数据库
     3. 发布Redis同步事件
@@ -61,7 +61,7 @@ async def sync_all(
             updated_since=updated_since.isoformat() if updated_since else None
         )
         
-        # 调用SyncService执行完整同步流程
+        # ✅ 正确做法：调用SyncService执行完整同步流程
         # 这会包括：API调用 + 数据库同步 + Redis事件发布
         sync_result = await sync_service.sync_all(
             updated_since=updated_since,
@@ -127,21 +127,11 @@ async def get_sync_status(
         dict: 同步状态信息
     """
     try:
-        # 从Redis获取最近的同步结果
-        redis_service = sync_service.redis_service
+        # 获取最近的同步结果（从Redis缓存）
+        latest_sync = await sync_service.redis_service.get_latest_sync_result()
         
-        # 尝试访问Redis服务以触发可能的异常
-        if hasattr(redis_service, 'connection_failed'):
-            raise redis_service.connection_failed
-        
-        # 获取最近的同步结果
-        try:
-            latest_sync = await redis_service.get_latest_sync_result()
-            sync_in_progress = await redis_service.is_sync_in_progress()
-        except AttributeError:
-            # 如果方法不存在，使用默认值
-            latest_sync = None
-            sync_in_progress = False
+        # 检查是否有正在进行的同步
+        sync_in_progress = await sync_service.redis_service.is_sync_in_progress()
         
         status_info = {
             "status": "healthy",

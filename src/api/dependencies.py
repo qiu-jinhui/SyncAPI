@@ -30,6 +30,10 @@ def get_db() -> Generator[Session, None, None]:
         db.close()
 
 
+# 别名，为了与sync_router.py保持一致
+get_db_session = get_db
+
+
 def get_redis_service() -> RedisService:
     """
     获取Redis服务实例
